@@ -3,11 +3,9 @@
 
 #include "http_conn.h"
 
-HttpConn::HttpConn(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator) {
-    countLink ++;
-    m_connFd = connFd;
-    m_state = HttpState::READ_AND_PROCESS;
-    m_pEventsGenerator = pEventsGenerator;
+HttpConn::HttpConn() {
+    m_connFd = -1;
+    m_state = HttpState::CLOSE;
 }
 
 HttpConn::~HttpConn() {
@@ -33,6 +31,7 @@ void HttpConn::process() {
             break;
 
             case HttpState::CLOSE:
+            tag = false;
             break;
         }      
     }
@@ -43,24 +42,33 @@ void HttpConn::process() {
 }
 
 void HttpConn::closeConn() {
-    if(m_connFd != -1) {
-        close(m_connFd);
+    if(close(m_connFd) == 0) {
+        // as worker thread and main thread can both close conn
+        // make sure of thread safety
+        // only one thread will success close
         this->modFdRemove();
         m_connFd = -1;
         countLink --;
+        m_state = HttpState::CLOSE;
+        m_request.init(true);
+        m_response.init();
+        m_pEventsGenerator = nullptr;
     }
-    m_state = HttpState::CLOSE;
-    m_request.init(true);
-    m_response.init();
 }
 
-void HttpConn::init(int connFd) {
+bool HttpConn::init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator) {
     if(m_state == HttpState::CLOSE) {
+        countLink ++;
+
         m_connFd = connFd;
         m_state = HttpState::READ_AND_PROCESS;
         m_request.init(true);
         m_response.init();
-        countLink ++;
+        m_pEventsGenerator = pEventsGenerator;
+        return true;
+    }
+    else {
+        return false;
     }
 }
 

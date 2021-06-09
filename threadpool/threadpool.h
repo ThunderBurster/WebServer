@@ -10,7 +10,7 @@
 #include "../utils/processable.h"
 #include "../utils/noncopyable.h"
 
-class ThreadPool: noncopyable {
+class ThreadPool: public noncopyable {
 private:
     // hold by main thread
     int m_numThreads;

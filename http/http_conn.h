@@ -24,11 +24,11 @@ private:
     HttpResponse m_response;
     std::shared_ptr<EventsGenerator> m_pEventsGenerator;
 public:
-    HttpConn(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator);
+    HttpConn();
     ~HttpConn();
     virtual void process();
     void closeConn();
-    void init(int connFd);
+    bool init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator);
     static size_t getLinkCount();
 private:
     void modFdInput();
