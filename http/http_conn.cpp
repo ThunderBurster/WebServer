@@ -112,6 +112,7 @@ void HttpConn::processResponse(bool &tag) {
     if(repState == ResponseState::DONE) {
         // request done or parse error will lead to WRITE
         if(m_request.getState() == RequestState::DONE) {
+            m_pEventsGenerator->modFd(m_connFd, EPOLLIN | EPOLLET | EPOLLONESHOT | EPOLLRDHUP);
             tag = false;
             m_request.init(false);
             m_response.init();
