@@ -6,7 +6,7 @@
 #include "../utils/file.h"
 
 
-enum ResponseState {
+enum class ResponseState {
     SEND, DONE, SEND_ERROR
 };
 

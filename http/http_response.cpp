@@ -26,7 +26,7 @@ const std::unordered_map<std::string, std::string> SUFFIX_TYPE = {
 };
 
 std::string getFileType(const std::string &filePath) {
-    size_t pos =  filePath.find_last_not_of(".");
+    size_t pos =  filePath.find_last_of(".");
     if(pos == std::string::npos) {
         return "text/plain";
     }
@@ -91,7 +91,6 @@ void HttpResponse::fillResponseBuffer(HttpRequest &request) {
         return;
     }
     // DONE
-    
 
     std::string method = request.getMethod();
     if(method == "GET") {

@@ -18,19 +18,18 @@ void EventsGenerator::addFd(int fd, uint32_t events) {
     epoll_event event;
     event.data.fd = fd;
     event.events = events;
-    assert(epoll_ctl(m_epollFd, EPOLL_CTL_ADD, fd, &event) != -1);
+    epoll_ctl(m_epollFd, EPOLL_CTL_ADD, fd, &event);
 }
 
 void EventsGenerator::removeFd(int fd) {
-    assert(epoll_ctl(m_epollFd, EPOLL_CTL_DEL, fd, nullptr) != -1);
-    assert(close(fd) != -1);
+    epoll_ctl(m_epollFd, EPOLL_CTL_DEL, fd, nullptr);
 }
 
 void EventsGenerator::modFd(int fd, uint32_t events) {
     epoll_event event;
     event.data.fd = fd;
     event.events = events;
-    assert(epoll_ctl(m_epollFd, EPOLL_CTL_MOD, fd, &event) != -1);
+    epoll_ctl(m_epollFd, EPOLL_CTL_MOD, fd, &event);
 }
 
 

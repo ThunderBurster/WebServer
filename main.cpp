@@ -1,8 +1,12 @@
 #include "server/server.h"
 
 
-int main(void) {
+void run() {
     Server server(10213, 5);
     server.start();
+}
+
+int main(void) {
+    run();
     return 0;
 }

@@ -23,21 +23,22 @@ void HttpRequest::readOnce(int fd) {
         ssize_t bytes = recv(fd, buffer, READ_BUFFER_SIZE-1, 0);
         if(bytes == -1) {
             if(errno == EAGAIN || errno == EWOULDBLOCK) {
-                return;
+                break;
             }
             else {
                 // something wrong, set the state
                 m_state = RequestState::RECV_ERROR;
-                return;
+                break;
             }
         }
         else if(bytes == 0) {
             m_state = RequestState::RECV_ERROR;
-            return;
+            break;
         }
         else {
             // read some bytes
             m_readBuffer.append(buffer);
+            printf("%s", buffer);
         }
     }
 }
@@ -56,7 +57,6 @@ void HttpRequest::tryParse() {
         else {
             // line ok
         }
-        
         
         switch(m_state) {
             case RequestState::REQUESTLINE:

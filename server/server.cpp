@@ -30,6 +30,7 @@ void Server::start() {
         // something wrong during initization server
         return;
     }
+    printf("server start\n");
     while(m_running) {
         std::vector<epoll_event> events = m_pEpoller->wait(65535, -1);
         for(epoll_event &event: events) {
@@ -101,10 +102,12 @@ void Server::dealWithConn() {
             break;
         }
         else {
+            this->setNonBlocking(connFd);
             if(!m_fd2Conn[connFd]) {
                 m_fd2Conn[connFd] = std::make_shared<HttpConn>();
             }
             m_fd2Conn[connFd]->init(connFd, m_pEpoller);
+            m_pEpoller->addFd(connFd, EPOLLIN | EPOLLET | EPOLLONESHOT | EPOLLRDHUP);
         }
     }
 

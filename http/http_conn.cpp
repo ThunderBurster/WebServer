@@ -48,7 +48,6 @@ void HttpConn::closeConn() {
         // only one thread will success close
         this->modFdRemove();
         m_connFd = -1;
-        countLink --;
         m_state = HttpState::CLOSE;
         m_request.init(true);
         m_response.init();
@@ -58,8 +57,6 @@ void HttpConn::closeConn() {
 
 bool HttpConn::init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator) {
     if(m_state == HttpState::CLOSE) {
-        countLink ++;
-
         m_connFd = connFd;
         m_state = HttpState::READ_AND_PROCESS;
         m_request.init(true);
@@ -70,10 +67,6 @@ bool HttpConn::init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerat
     else {
         return false;
     }
-}
-
-size_t HttpConn::getLinkCount() {
-    return countLink;
 }
 
 // private

@@ -2,10 +2,10 @@
 #include <string>
 #include <unordered_map>
 
-enum RequestState {
+enum class RequestState {
     REQUESTLINE, HEADER, CONTENT, RECV_ERROR, PARSE_ERROR, DONE
 };
-enum LineState {
+enum class LineState {
     LINE_OPEN, LINE_OK, LINE_BAD
 };
 
