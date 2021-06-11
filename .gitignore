@@ -1,0 +1,25 @@
+# test*.cpp
+# .gitignore
+# .vscode/
+# root/
+
+# *.sh
+# *.out
+# *.txt
+
+*
+!*.*
+!*/
+!*.cpp
+!*.h
+!LICENSE
+!makefile
+!Makefile
+
+*.o
+*.1
+*.log
+*.exe
+/.vscode
+*.sh
+test*.cpp
