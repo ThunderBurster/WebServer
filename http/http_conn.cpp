@@ -26,7 +26,6 @@ void HttpConn::process() {
             break;
 
             case HttpState::ERROR:
-            this->closeConn();
             tag = false;
             break;
 
@@ -35,24 +34,34 @@ void HttpConn::process() {
             break;
         }      
     }
-    // no keep alive && case send done
-    if(m_response.getState() == ResponseState::DONE && !m_request.getkeepAlive()) {
+    // make sure the last thing to do is to modfd/close conn
+    // to make sure 2 threads will not maipulate 1 httpconn at the same time
+    switch(m_action) {
+        case HttpAction::MOD_INPUT:
+        this->modFdInput();
+        break;
+
+        case HttpAction::MOD_OUTPUT:
+        this->modFdOutput();
+        break;
+
+        case HttpAction::CLOSE_CONN:
         this->closeConn();
+        break;
     }
+    
 }
 
 void HttpConn::closeConn() {
-    if(close(m_connFd) == 0) {
-        // as worker thread and main thread can both close conn
-        // make sure of thread safety
-        // only one thread will success close
-        this->modFdRemove();
-        m_connFd = -1;
-        m_state = HttpState::CLOSE;
-        m_request.init(true);
-        m_response.init();
-        m_pEventsGenerator = nullptr;
-    }
+    this->modFdRemove();
+    m_state = HttpState::CLOSE;
+    m_request.init(true);
+    m_response.init();
+    m_pEventsGenerator = nullptr;
+    
+    int fd = m_connFd;
+    m_connFd = -1;
+    close(fd);
 }
 
 bool HttpConn::init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator) {
@@ -97,12 +106,15 @@ void HttpConn::processRequest(bool &tag) {
         m_state = HttpState::WRITE;
     }
     else if(reqState == RequestState::RECV_ERROR) {
+        // need close conn
         m_state = HttpState::ERROR;
+        tag = false;
+        m_action = HttpAction::CLOSE_CONN;
     }
     else {
-        // keep doing
+        // need keep reading
         tag = false;
-        this->modFdInput();
+        m_action = HttpAction::MOD_INPUT;
     }
 }
 
@@ -112,23 +124,28 @@ void HttpConn::processResponse(bool &tag) {
     if(repState == ResponseState::DONE) {
         // request done or parse error will lead to WRITE
         if(m_request.getState() == RequestState::DONE) {
-            m_pEventsGenerator->modFd(m_connFd, EPOLLIN | EPOLLET | EPOLLONESHOT | EPOLLRDHUP);
+            // if keep alive, ready to input, or close
             tag = false;
+            m_action = m_request.getkeepAlive()? HttpAction::MOD_INPUT: HttpAction::CLOSE_CONN;
             m_request.init(false);
             m_response.init();
         }
         else {
-            // parse error
+            // parse error, close it
             m_state = HttpState::ERROR;
-            
+            tag = false;
+            m_action = HttpAction::CLOSE_CONN;
         }
     }
     else if(repState == ResponseState::SEND_ERROR) {
+        tag = false;
+        m_action = HttpAction::CLOSE_CONN;
         m_state = HttpState::ERROR;
     }
     else {
-        // keep doing
-        this->modFdOutput();
+        // keep sending
+        tag = false;
+        m_action = HttpAction::MOD_OUTPUT;
     }
 }
 

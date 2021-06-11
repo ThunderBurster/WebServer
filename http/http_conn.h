@@ -14,11 +14,16 @@ enum class HttpState {
     READ_AND_PROCESS, WRITE, ERROR, CLOSE
 };
 
+enum class HttpAction {
+    MOD_INPUT, MOD_OUTPUT, CLOSE_CONN
+};
+
 
 class HttpConn: public processable {
 private:
     int m_connFd;
     HttpState m_state;
+    HttpAction m_action;
     HttpRequest m_request;
     HttpResponse m_response;
     std::shared_ptr<EventsGenerator> m_pEventsGenerator;

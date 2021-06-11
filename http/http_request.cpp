@@ -38,7 +38,6 @@ void HttpRequest::readOnce(int fd) {
         else {
             // read some bytes
             m_readBuffer.append(buffer);
-            printf("%s", buffer);
         }
     }
 }
