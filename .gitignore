@@ -19,7 +19,7 @@
 *.o
 *.1
 *.log
-*.exe
+*.out
 /.vscode
 *.sh
 test*.cpp
