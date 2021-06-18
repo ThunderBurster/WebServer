@@ -4,7 +4,7 @@
 #include <semaphore.h>
 #include "../utils/noncopyable.h"
 
-class Sem: noncopyable{
+class Sem: public noncopyable{
 private:
     sem_t m_sem;
 public:
@@ -25,7 +25,7 @@ public:
     }
 };
 
-class Mutex: noncopyable {
+class Mutex: public noncopyable {
 private:
     pthread_mutex_t m_mutex;
 public:
