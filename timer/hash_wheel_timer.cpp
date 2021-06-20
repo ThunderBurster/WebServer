@@ -62,6 +62,7 @@ std::vector<int> HashWheelTimer::tick() {
             it = m_circle->erase(it);
         }
     }
+    m_pBlock = (m_pBlock + 1) % CIRCLE_LEN;
     m_mutex.unlock();
     return ret;
 }
