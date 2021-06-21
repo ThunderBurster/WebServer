@@ -45,7 +45,7 @@ void Server::start() {
     }
     printf("server start\n");
     while(m_running) {
-        std::vector<epoll_event> events = m_pEpoller->wait(65535, -1);
+        std::vector<epoll_event> events = m_pEpoller->wait(65535);
         for(epoll_event &event: events) {
             int thisFd = event.data.fd;
             uint32_t thisEvent = event.events;
@@ -75,6 +75,7 @@ void Server::start() {
             m_tick = false;
         }
     }
+    printf("server end\n");
     
 }
 

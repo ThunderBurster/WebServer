@@ -16,5 +16,5 @@ public:
     void addFd(int fd, uint32_t events);
     void removeFd(int fd);
     void modFd(int fd, uint32_t events);
-    std::vector<epoll_event> wait(int maxNum, int timeout);
+    std::vector<epoll_event> wait(int maxNum);
 };

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "events_generator.h"
 
@@ -33,11 +34,14 @@ void EventsGenerator::modFd(int fd, uint32_t events) {
 }
 
 
-std::vector<epoll_event> EventsGenerator::wait(int maxNum, int timeout) {
+std::vector<epoll_event> EventsGenerator::wait(int maxNum) {
     // timeout -1 to block
     epoll_event events[maxNum];
     std::vector<epoll_event> ret;
-    int cnt = epoll_wait(m_epollFd, events, maxNum, timeout);
+    int cnt = epoll_wait(m_epollFd, events, maxNum, -1);
+    if(cnt == -1 && errno == EINTR) {
+        cnt = 0;
+    }
     assert(cnt != -1);
     ret.reserve(cnt);
 
