@@ -23,4 +23,5 @@ public:
     bool addFd(int fd, int timeOutMs);
     bool removeFd(int fd);
     std::vector<int> tick();
+    int getIntervalMs();
 };

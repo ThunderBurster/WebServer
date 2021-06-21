@@ -72,4 +72,8 @@ std::vector<int> HashWheelTimer::tick() {
     return ret;
 }
 
+int HashWheelTimer::getIntervalMs() {
+    return m_circleIntervalMs;
+}
+
 

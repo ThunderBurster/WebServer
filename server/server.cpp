@@ -3,13 +3,25 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <signal.h>
 
-Server::Server(int port, int threadNum): m_threadPool(threadNum) {
+#include "../utils/socket_pair.h"
+
+Server::Server(int port, int threadNum, int timeOutS): m_threadPool(threadNum) {
     m_listenFd = -1;
     m_port = port;
+
+    m_timeOutS = timeOutS;
+
     m_running = false;
     m_tick = false;
+
     m_pEpoller = std::make_shared<EventsGenerator>();
+    m_pTimer = std::make_shared<HashWheelTimer>(1000);  // 1000ms == 1s
+    // timer, set fds
+    if(!this->signalDeal()) {
+        return;
+    }
     // now listen
     if(!this->listenFd()) {
         return;
@@ -23,6 +35,7 @@ Server::~Server() {
     // to release the resource
     close(m_listenFd);
     m_pEpoller = nullptr;
+    m_pTimer = nullptr;
 }
 
 void Server::start() {
@@ -40,6 +53,9 @@ void Server::start() {
             if(thisFd == m_listenFd) {
                 this->dealWithConn();
             }
+            else if(thisFd == SockPair::getInstance()->getFd0()) {
+                this->dealWithSig();
+            }
             else if(thisEvent & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
                 this->dealWithError(thisFd);
             }
@@ -50,10 +66,14 @@ void Server::start() {
                 this->dealWithHttp(thisFd);
             }
             else {
-                // unexpected events, or to extend
+                // unknown events
             }
         }
-
+        // end for
+        if(m_tick) {
+            this->dealWithTimeOut();
+            m_tick = false;
+        }
     }
     
 }
@@ -106,7 +126,8 @@ void Server::dealWithConn() {
             if(!m_fd2Conn[connFd]) {
                 m_fd2Conn[connFd] = std::make_shared<HttpConn>();
             }
-            m_fd2Conn[connFd]->init(connFd, m_pEpoller);
+            m_fd2Conn[connFd]->init(connFd, m_pEpoller, m_pTimer, m_timeOutS);
+            m_pTimer->addFd(connFd, m_timeOutS*1000);
             m_pEpoller->addFd(connFd, EPOLLIN | EPOLLET | EPOLLONESHOT | EPOLLRDHUP);
         }
     }
@@ -115,13 +136,96 @@ void Server::dealWithConn() {
 
 void Server::dealWithError(int fd) {
     if(m_fd2Conn[fd]) {
+        m_pTimer->removeFd(fd);
         m_fd2Conn[fd]->closeConn();
     }
 }
 
 void Server::dealWithHttp(int fd) {
     if(m_fd2Conn[fd]) {
+        m_pTimer->removeFd(fd);
         m_threadPool.push(m_fd2Conn[fd]);
     }
 
+}
+
+// set socket signal
+void sigHandler(int sig) {
+    int saveErr = errno;
+    char thisSig = (char)sig;
+    send(SockPair::getInstance()->getFd1(), &thisSig, 1, 0);
+    errno = saveErr;
+}
+bool Server::signalDeal() {
+    struct sigaction sa;
+    // signal alarm
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = sigHandler;
+    sigfillset(&sa.sa_mask);
+    if(sigaction(SIGALRM, &sa, NULL) == -1) {
+        return false;
+    }
+    // signal term
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = sigHandler;
+    sigfillset(&sa.sa_mask);
+    if(sigaction(SIGTERM, &sa, NULL) == -1) {
+        return false;
+    }
+    // ignore signal pipe
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = SIG_IGN;
+    sigfillset(&sa.sa_mask);
+    if(sigaction(SIGPIPE, &sa, NULL) == -1) {
+        return false;
+    }
+
+    m_pEpoller->addFd(SockPair::getInstance()->getFd0(), EPOLLIN | EPOLLET | EPOLLRDHUP);
+    alarm(m_pTimer->getIntervalMs()/1000);
+    return true;
+}
+
+void Server::dealWithSig() {
+    char sig;
+    while(true) {
+        ssize_t bytes = recv(SockPair::getInstance()->getFd0(), &sig, 1, 0);
+        if(bytes == -1) {
+            if(errno == EAGAIN || errno == EWOULDBLOCK) {
+                break;
+            }
+            else {
+                // something wrong with signal sockets
+                m_running = false;
+                break;
+            }
+        }
+        else if(bytes == 0) {
+            m_running = false;
+            break;
+        }
+        else {
+            // success
+            switch(sig) {
+                case SIGALRM:
+                m_tick = true;
+                break;
+
+                case SIGTERM:
+                m_running = false;
+                break;
+
+                default:
+                // unknow sig here
+                break;
+            }
+        }
+    }
+}
+
+void Server::dealWithTimeOut() {
+    std::vector<int> timeOutFds = m_pTimer->tick();
+    for(int fd: timeOutFds) {
+        m_fd2Conn[fd]->closeConn();  // close and remove epoll fd
+    }
+    alarm(m_pTimer->getIntervalMs()/1000);
 }

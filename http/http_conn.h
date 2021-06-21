@@ -9,6 +9,7 @@
 #include "../events_generator/events_generator.h"
 #include "http_request.h"
 #include "http_response.h"
+#include "../timer/hash_wheel_timer.h"
 
 enum class HttpState {
     READ_AND_PROCESS, WRITE, ERROR, CLOSE
@@ -27,12 +28,14 @@ private:
     HttpRequest m_request;
     HttpResponse m_response;
     std::shared_ptr<EventsGenerator> m_pEventsGenerator;
+    std::shared_ptr<HashWheelTimer> m_pTimer;
+    int m_timeOutS;
 public:
     HttpConn();
     ~HttpConn();
     virtual void process();
     void closeConn();
-    bool init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator);
+    bool init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator, std::shared_ptr<HashWheelTimer> &pTimer, int timeOutS);
 private:
     void modFdInput();
     void modFdOutput();

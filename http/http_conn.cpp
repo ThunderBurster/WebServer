@@ -10,7 +10,6 @@ HttpConn::HttpConn() {
 
 HttpConn::~HttpConn() {
     this->closeConn();
-    m_pEventsGenerator = nullptr;
 }
 
 void HttpConn::process() {
@@ -38,14 +37,17 @@ void HttpConn::process() {
     // to make sure 2 threads will not maipulate 1 httpconn at the same time
     switch(m_action) {
         case HttpAction::MOD_INPUT:
+        m_pTimer->addFd(m_connFd, m_timeOutS*1000);
         this->modFdInput();
         break;
 
         case HttpAction::MOD_OUTPUT:
+        m_pTimer->addFd(m_connFd, m_timeOutS*1000);
         this->modFdOutput();
         break;
 
         case HttpAction::CLOSE_CONN:
+        m_pTimer->removeFd(m_connFd);
         this->closeConn();
         break;
     }
@@ -57,20 +59,21 @@ void HttpConn::closeConn() {
     m_state = HttpState::CLOSE;
     m_request.init(true);
     m_response.init();
-    m_pEventsGenerator = nullptr;
     
     int fd = m_connFd;
     m_connFd = -1;
     close(fd);
 }
 
-bool HttpConn::init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator) {
+bool HttpConn::init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator, std::shared_ptr<HashWheelTimer> &pTimer, int timeOutS) {
     if(m_state == HttpState::CLOSE) {
         m_connFd = connFd;
         m_state = HttpState::READ_AND_PROCESS;
         m_request.init(true);
         m_response.init();
         m_pEventsGenerator = pEventsGenerator;
+        m_pTimer = pTimer;
+        m_timeOutS = timeOutS;
         return true;
     }
     else {
