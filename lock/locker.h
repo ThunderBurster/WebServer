@@ -2,6 +2,7 @@
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <assert.h>
 #include "../utils/noncopyable.h"
 
 class Sem: public noncopyable{
@@ -18,10 +19,18 @@ public:
         sem_destroy(&m_sem);
     }
     bool wait() {
-        return !sem_wait(&m_sem);
+        int ret;
+        while((ret = sem_wait(&m_sem)) == -1 && errno == EINTR)
+            continue;
+        assert(ret != -1);
+        return true;
     }
     bool post() {
-        return !sem_post(&m_sem);
+        int ret;
+        while((ret = sem_post(&m_sem)) == -1 && errno == EINTR)
+            continue;
+        assert(ret != -1);
+        return true;
     }
 };
 
