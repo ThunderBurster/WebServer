@@ -58,8 +58,13 @@ std::vector<int> HashWheelTimer::tick() {
             it ++;
         }
         else {
-            ret.push_back(it->first);
-            it = m_circle->erase(it);
+            // remove fd from list
+            // and remove record
+            int timeOutFd = it->first;
+            ret.push_back(timeOutFd);
+            m_fd2Block.erase(timeOutFd);
+            m_fd2It.erase(timeOutFd);
+            it = m_circle[m_pBlock].erase(it);
         }
     }
     m_pBlock = (m_pBlock + 1) % CIRCLE_LEN;
