@@ -52,7 +52,8 @@ void HttpConn::process() {
 
         case HttpAction::CLOSE_CONN:
         LOG_INFO("fd %d to close in process", this->m_connFd);
-        m_pTimer->removeFd(m_connFd);
+        // should not remove timer, fd in process is not in timer
+        // m_pTimer->removeFd(m_connFd);
         this->closeConn();
         break;
     }

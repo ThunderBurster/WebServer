@@ -152,7 +152,10 @@ void Server::dealWithConn() {
 void Server::dealWithError(int fd) {
     if(m_fd2Conn[fd]) {
         LOG_INFO("conn fd %d error, close it", fd);
-        m_pTimer->removeFd(fd);
+        bool ret = m_pTimer->removeFd(fd);
+        if(!ret) {
+            LOG_WARN("remove timer fd %d failed", fd);
+        }
         m_fd2Conn[fd]->closeConn();
     }
 }
@@ -160,7 +163,10 @@ void Server::dealWithError(int fd) {
 void Server::dealWithHttp(int fd) {
     if(m_fd2Conn[fd]) {
         LOG_INFO("push fd %d in the task queue", fd);
-        m_pTimer->removeFd(fd);
+        bool ret = m_pTimer->removeFd(fd);
+        if(!ret) {
+            LOG_WARN("remove timer fd %d failed", fd);
+        }
         m_threadPool.push(m_fd2Conn[fd]);
     }
 

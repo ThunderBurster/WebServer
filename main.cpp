@@ -8,7 +8,7 @@ void run() {
 }
 
 int main(void) {
-    LOG_INIT("log", "webserver", 5);
+    LOG_INIT("log", "webserver", 3);
     run();
     return 0;
 }
