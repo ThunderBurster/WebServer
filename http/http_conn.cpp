@@ -2,6 +2,7 @@
 #include <cstring>
 
 #include "http_conn.h"
+#include "../logger/rlog.h"
 
 HttpConn::HttpConn() {
     m_connFd = -1;
@@ -13,6 +14,7 @@ HttpConn::~HttpConn() {
 }
 
 void HttpConn::process() {
+    LOG_INFO("start to process fd %d", this->m_connFd);
     bool tag = true;
     while(tag) {
         switch(m_state) {
@@ -37,16 +39,19 @@ void HttpConn::process() {
     // to make sure 2 threads will not maipulate 1 httpconn at the same time
     switch(m_action) {
         case HttpAction::MOD_INPUT:
+        LOG_INFO("fd %d continue to read", this->m_connFd);
         m_pTimer->addFd(m_connFd, m_timeOutS*1000);
         this->modFdInput();
         break;
 
         case HttpAction::MOD_OUTPUT:
+        LOG_INFO("fd %d continue to write", this->m_connFd);
         m_pTimer->addFd(m_connFd, m_timeOutS*1000);
         this->modFdOutput();
         break;
 
         case HttpAction::CLOSE_CONN:
+        LOG_INFO("fd %d to close in process", this->m_connFd);
         m_pTimer->removeFd(m_connFd);
         this->closeConn();
         break;

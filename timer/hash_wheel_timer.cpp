@@ -1,4 +1,5 @@
 #include "hash_wheel_timer.h"
+#include "../logger/rlog.h"
 
 #include <ctime>
 
@@ -28,6 +29,7 @@ bool HashWheelTimer::addFd(int fd, int timeOutMs) {
     else {
         // fd already exist
         m_mutex.unlock();
+        LOG_WARN("timer add fd failed, fd %d already exists!", fd);
         return false;
     }
 }
@@ -43,6 +45,7 @@ bool HashWheelTimer::removeFd(int fd) {
     }
     else {
         m_mutex.unlock();
+        LOG_WARN("timer remove fd failed, fd %d not exists!", fd);
         return false;
     }
 }

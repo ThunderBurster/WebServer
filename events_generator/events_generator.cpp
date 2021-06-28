@@ -3,6 +3,7 @@
 #include <errno.h>
 
 #include "events_generator.h"
+#include "../logger/rlog.h"
 
 
 EventsGenerator::EventsGenerator() {
@@ -19,18 +20,27 @@ void EventsGenerator::addFd(int fd, uint32_t events) {
     epoll_event event;
     event.data.fd = fd;
     event.events = events;
-    epoll_ctl(m_epollFd, EPOLL_CTL_ADD, fd, &event);
+    int ret = epoll_ctl(m_epollFd, EPOLL_CTL_ADD, fd, &event);
+    if(ret == -1) {
+        LOG_WARN("add fd %d to epoller failed, with errno %d", fd, errno);
+    }
 }
 
 void EventsGenerator::removeFd(int fd) {
-    epoll_ctl(m_epollFd, EPOLL_CTL_DEL, fd, nullptr);
+    int ret = epoll_ctl(m_epollFd, EPOLL_CTL_DEL, fd, nullptr);
+    if(ret == -1) {
+        LOG_WARN("remove fd %d to epoller failed, with errno %d", fd, errno);
+    }
 }
 
 void EventsGenerator::modFd(int fd, uint32_t events) {
     epoll_event event;
     event.data.fd = fd;
     event.events = events;
-    epoll_ctl(m_epollFd, EPOLL_CTL_MOD, fd, &event);
+    int ret = epoll_ctl(m_epollFd, EPOLL_CTL_MOD, fd, &event);
+    if(ret == -1) {
+        LOG_WARN("mod fd %d to epoller failed, with errno %d", fd, errno);
+    }
 }
 
 

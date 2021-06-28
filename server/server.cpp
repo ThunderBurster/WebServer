@@ -6,6 +6,7 @@
 #include <signal.h>
 
 #include "../utils/socket_pair.h"
+#include "../logger/rlog.h"
 
 Server::Server(int port, int threadNum, int timeOutS): m_threadPool(threadNum) {
     m_listenFd = -1;
@@ -50,7 +51,7 @@ void Server::start() {
         // something wrong during initization server
         return;
     }
-    printf("server start\n");
+    LOG_INFO("server start");
     while(m_running) {
         std::vector<epoll_event> events = m_pEpoller->wait(65535);
         for(epoll_event &event: events) {
@@ -82,7 +83,8 @@ void Server::start() {
             m_tick = false;
         }
     }
-    printf("server end\n");
+    LOG_INFO("server end");
+    
     
 }
 
@@ -130,9 +132,11 @@ void Server::dealWithConn() {
             break;
         }
         else if(connFd > Server::MAXFD) {
+            LOG_INFO("get fd %d too big, close it", connFd);
             close(connFd);
         }
         else {
+            LOG_INFO("get conn fd %d", connFd);
             this->setNonBlocking(connFd);
             if(!m_fd2Conn[connFd]) {
                 m_fd2Conn[connFd] = std::make_shared<HttpConn>();
@@ -147,6 +151,7 @@ void Server::dealWithConn() {
 
 void Server::dealWithError(int fd) {
     if(m_fd2Conn[fd]) {
+        LOG_INFO("conn fd %d error, close it", fd);
         m_pTimer->removeFd(fd);
         m_fd2Conn[fd]->closeConn();
     }
@@ -154,6 +159,7 @@ void Server::dealWithError(int fd) {
 
 void Server::dealWithHttp(int fd) {
     if(m_fd2Conn[fd]) {
+        LOG_INFO("push fd %d in the task queue", fd);
         m_pTimer->removeFd(fd);
         m_threadPool.push(m_fd2Conn[fd]);
     }
@@ -206,11 +212,13 @@ void Server::dealWithSig() {
             }
             else {
                 // something wrong with signal sockets
+                LOG_INFO("something wrong with signal sockets");
                 m_running = false;
                 break;
             }
         }
         else if(bytes == 0) {
+            LOG_INFO("get sig to stop this server");
             m_running = false;
             break;
         }
@@ -218,14 +226,17 @@ void Server::dealWithSig() {
             // success
             switch(sig) {
                 case SIGALRM:
+                LOG_INFO("get sig to timer tick");
                 m_tick = true;
                 break;
 
                 case SIGTERM:
+                LOG_INFO("get sig to stop this server");
                 m_running = false;
                 break;
 
                 default:
+                LOG_WARN("unknown sig get %d", sig);
                 // unknow sig here
                 break;
             }
@@ -236,6 +247,7 @@ void Server::dealWithSig() {
 void Server::dealWithTimeOut() {
     std::vector<int> timeOutFds = m_pTimer->tick();
     for(int fd: timeOutFds) {
+        LOG_INFO("fd %d timeout", fd);
         m_fd2Conn[fd]->closeConn();  // close and remove epoll fd
     }
     alarm(m_pTimer->getIntervalMs()/1000);

@@ -1,4 +1,5 @@
 #include "server/server.h"
+#include "logger/rlog.h"
 
 
 void run() {
@@ -7,6 +8,7 @@ void run() {
 }
 
 int main(void) {
+    LOG_INIT("log", "webserver", 5);
     run();
     return 0;
 }
