@@ -19,6 +19,8 @@ private:
 
     bool m_running;
     bool m_tick;
+
+    const static int MAXFD = 65535;
     
     ThreadPool m_threadPool;
     std::shared_ptr<EventsGenerator> m_pEpoller;  // shared with HttpConn

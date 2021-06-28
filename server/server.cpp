@@ -26,6 +26,13 @@ Server::Server(int port, int threadNum, int timeOutS): m_threadPool(threadNum) {
     if(!this->listenFd()) {
         return;
     }
+    // initial http conn objects, from fd 5 to fd max
+    for(int i=5; i<=Server::MAXFD; i++) {
+        if(!m_fd2Conn[i]) {
+            m_fd2Conn[i] = std::make_shared<HttpConn>();
+        }
+    }
+
     // ok
     m_running = true;
 }
@@ -121,6 +128,9 @@ void Server::dealWithConn() {
         int connFd = accept(m_listenFd, (struct sockaddr *)&clientAddress, &clientAddrLength);
         if(connFd < 0) {
             break;
+        }
+        else if(connFd > Server::MAXFD) {
+            close(connFd);
         }
         else {
             this->setNonBlocking(connFd);

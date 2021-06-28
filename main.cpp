@@ -2,7 +2,7 @@
 
 
 void run() {
-    Server server(10213, 5, 30);
+    Server server(10213, 8, 30);
     server.start();
 }
 
