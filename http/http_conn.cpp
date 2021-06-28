@@ -4,6 +4,8 @@
 #include "http_conn.h"
 #include "../logger/rlog.h"
 
+std::atomic<int> HttpConn::connCount;  // add this to avoid compile bug
+
 HttpConn::HttpConn() {
     m_connFd = -1;
     m_state = HttpState::CLOSE;
@@ -39,19 +41,19 @@ void HttpConn::process() {
     // to make sure 2 threads will not maipulate 1 httpconn at the same time
     switch(m_action) {
         case HttpAction::MOD_INPUT:
-        LOG_INFO("fd %d continue to read", this->m_connFd);
+        // LOG_INFO("fd %d continue to read", this->m_connFd);
         m_pTimer->addFd(m_connFd, m_timeOutS*1000);
         this->modFdInput();
         break;
 
         case HttpAction::MOD_OUTPUT:
-        LOG_INFO("fd %d continue to write", this->m_connFd);
+        // LOG_INFO("fd %d continue to write", this->m_connFd);
         m_pTimer->addFd(m_connFd, m_timeOutS*1000);
         this->modFdOutput();
         break;
 
         case HttpAction::CLOSE_CONN:
-        LOG_INFO("fd %d to close in process", this->m_connFd);
+        // LOG_INFO("fd %d to close in process", this->m_connFd);
         // should not remove timer, fd in process is not in timer
         // m_pTimer->removeFd(m_connFd);
         this->closeConn();
@@ -61,6 +63,9 @@ void HttpConn::process() {
 }
 
 void HttpConn::closeConn() {
+    HttpConn::connCount --;
+    LOG_INFO("fd %d close, current user count %d", this->m_connFd, (int)HttpConn::connCount);
+
     this->modFdRemove();
     m_state = HttpState::CLOSE;
     m_request.init(true);
@@ -73,6 +78,9 @@ void HttpConn::closeConn() {
 
 bool HttpConn::init(int connFd, std::shared_ptr<EventsGenerator> &pEventsGenerator, std::shared_ptr<HashWheelTimer> &pTimer, int timeOutS) {
     if(m_state == HttpState::CLOSE) {
+        HttpConn::connCount ++;
+        LOG_INFO("fd %d init, current user count %d", connFd, (int)HttpConn::connCount);
+
         m_connFd = connFd;
         m_state = HttpState::READ_AND_PROCESS;
         m_request.init(true);

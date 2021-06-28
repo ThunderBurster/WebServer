@@ -30,6 +30,8 @@ private:
     std::shared_ptr<EventsGenerator> m_pEventsGenerator;
     std::shared_ptr<HashWheelTimer> m_pTimer;
     int m_timeOutS;
+
+    static std::atomic<int> connCount;
 public:
     HttpConn();
     ~HttpConn();

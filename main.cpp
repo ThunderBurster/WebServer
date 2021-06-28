@@ -8,7 +8,8 @@ void run() {
 }
 
 int main(void) {
-    LOG_INIT("log", "webserver", 3);
+    LOG_INIT("log", "webserver", 4);
+    LOG_INFO("pid: %d", getpid());
     run();
     return 0;
 }

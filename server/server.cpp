@@ -59,6 +59,7 @@ void Server::start() {
             uint32_t thisEvent = event.events;
 
             if(thisFd == m_listenFd) {
+                LOG_INFO("listen events arrived");
                 this->dealWithConn();
             }
             else if(thisFd == SockPair::getInstance()->getFd0()) {
@@ -75,6 +76,7 @@ void Server::start() {
             }
             else {
                 // unknown events
+                LOG_WARN("unknow events");
             }
         }
         // end for
@@ -129,10 +131,13 @@ void Server::dealWithConn() {
     while(true) {
         int connFd = accept(m_listenFd, (struct sockaddr *)&clientAddress, &clientAddrLength);
         if(connFd < 0) {
+            LOG_WARN("no new conn from listen, with errno %d", errno);
             break;
         }
         else if(connFd > Server::MAXFD) {
             LOG_INFO("get fd %d too big, close it", connFd);
+            std::string busyInfo = "server busy, please wait...";
+            send(connFd, busyInfo.c_str(), busyInfo.size(), 0);
             close(connFd);
         }
         else {
@@ -141,7 +146,10 @@ void Server::dealWithConn() {
             if(!m_fd2Conn[connFd]) {
                 m_fd2Conn[connFd] = std::make_shared<HttpConn>();
             }
-            m_fd2Conn[connFd]->init(connFd, m_pEpoller, m_pTimer, m_timeOutS);
+            bool ret = m_fd2Conn[connFd]->init(connFd, m_pEpoller, m_pTimer, m_timeOutS);
+            if(!ret) {
+                LOG_WARN("initial fd %d to http failed", connFd);
+            }
             m_pTimer->addFd(connFd, m_timeOutS*1000);
             m_pEpoller->addFd(connFd, EPOLLIN | EPOLLET | EPOLLONESHOT | EPOLLRDHUP);
         }
@@ -162,7 +170,6 @@ void Server::dealWithError(int fd) {
 
 void Server::dealWithHttp(int fd) {
     if(m_fd2Conn[fd]) {
-        LOG_INFO("push fd %d in the task queue", fd);
         bool ret = m_pTimer->removeFd(fd);
         if(!ret) {
             LOG_WARN("remove timer fd %d failed", fd);
@@ -218,13 +225,13 @@ void Server::dealWithSig() {
             }
             else {
                 // something wrong with signal sockets
-                LOG_INFO("something wrong with signal sockets");
+                LOG_ERROR("something wrong with signal sockets");
                 m_running = false;
                 break;
             }
         }
         else if(bytes == 0) {
-            LOG_INFO("get sig to stop this server");
+            LOG_ERROR("something wrong with signal sockets");
             m_running = false;
             break;
         }
