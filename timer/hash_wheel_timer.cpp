@@ -29,6 +29,7 @@ bool HashWheelTimer::addFd(int fd, int timeOutMs) {
     else {
         // fd already exist
         m_mutex.unlock();
+        LOG_DEBUG("timer add fd %d fail", fd);
         return false;
     }
 }
@@ -44,6 +45,7 @@ bool HashWheelTimer::removeFd(int fd) {
     }
     else {
         m_mutex.unlock();
+        LOG_DEBUG("timer remove fd %d fail", fd);
         return false;
     }
 }
@@ -51,6 +53,7 @@ bool HashWheelTimer::removeFd(int fd) {
 std::vector<int> HashWheelTimer::tick() {
     // invoked every m_circleIntervalMs ms
     m_mutex.lock();
+    LOG_DEBUG("%u fd in this timer", m_fd2Block.size());
     std::vector<int> ret;
     auto it = m_circle[m_pBlock].begin();
     while(it != m_circle[m_pBlock].end()) {

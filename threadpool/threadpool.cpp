@@ -1,6 +1,7 @@
 #include <assert.h>
 
 #include "threadpool.h"
+#include "../logger/rlog.h"
 
 
 ThreadPool::ThreadPool(int numThreads) {
@@ -51,11 +52,17 @@ void* ThreadPool::loop(void *arg) {
         if(!sp_taskQueue->empty()) {
             sp_task = sp_taskQueue->front();
             sp_taskQueue->pop();
+
+            LOG_DEBUG("task in this queue %u, sem value is %d\n", sp_taskQueue->size(), sp_queueSem->getValue());
         }
         sp_queueMutex->unlock();
         // do the task
-        if(sp_task)
+        if(sp_task) {
             sp_task->process();
+        }
+        else {
+            LOG_WARN("empty task pointer");
+        }
     }
     return arg;
 }

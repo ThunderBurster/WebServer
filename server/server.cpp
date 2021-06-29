@@ -135,7 +135,7 @@ void Server::dealWithConn() {
             break;
         }
         else if(connFd > Server::MAXFD) {
-            LOG_INFO("get fd %d too big, close it", connFd);
+            LOG_WARN("get fd %d too big, close it", connFd);
             std::string busyInfo = "server busy, please wait...";
             send(connFd, busyInfo.c_str(), busyInfo.size(), 0);
             close(connFd);

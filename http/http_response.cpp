@@ -2,6 +2,7 @@
 #include <unordered_map>
 
 #include "http_response.h"
+#include "../logger/rlog.h"
 
 const std::unordered_map<std::string, std::string> SUFFIX_TYPE = {
     { ".html",  "text/html" },
@@ -74,6 +75,7 @@ void HttpResponse::writeOnce(int fd) {
             else {
                 // something wrong
                 m_state = ResponseState::SEND_ERROR;
+                return;
             }
         }
         else {
