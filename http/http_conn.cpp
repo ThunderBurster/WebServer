@@ -41,19 +41,16 @@ void HttpConn::process() {
     // to make sure 2 threads will not maipulate 1 httpconn at the same time
     switch(m_action) {
         case HttpAction::MOD_INPUT:
-        // LOG_INFO("fd %d continue to read", this->m_connFd);
         m_pTimer->addFd(m_connFd, m_timeOutS*1000);
         this->modFdInput();
         break;
 
         case HttpAction::MOD_OUTPUT:
-        // LOG_INFO("fd %d continue to write", this->m_connFd);
         m_pTimer->addFd(m_connFd, m_timeOutS*1000);
         this->modFdOutput();
         break;
 
         case HttpAction::CLOSE_CONN:
-        // LOG_INFO("fd %d to close in process", this->m_connFd);
         // should not remove timer, fd in process is not in timer
         // m_pTimer->removeFd(m_connFd);
         this->closeConn();

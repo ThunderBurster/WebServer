@@ -121,28 +121,22 @@ bool HttpRequest::getkeepAlive() {
 
 // private
 void HttpRequest::parseRequestLine(const std::string &line) {
-    std::regex patten("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$");
-    std::smatch subMatch;
-    if(std::regex_match(line, subMatch, patten)) {
-        m_method = subMatch[1];
-        m_path = subMatch[2];
-        m_version = subMatch[3];
+    std::istringstream iss(line);
+    if((iss >> m_method >> m_path >> m_version)) {
+        // GET /url HTTP/1.1
         m_state = RequestState::HEADER;
     }
     else {
-        // failed
-        m_state = RequestState::PARSE_ERROR;        
+        // fail
+        m_state = RequestState::PARSE_ERROR;
     }
 }
 
 void HttpRequest::parseHeader(const std::string &line) {
-    std::regex patten("^([^:]*): ?(.*)$");
-    std::smatch subMatch;
-    if(std::regex_match(line, subMatch, patten)) {
-        m_header[subMatch[1]] = subMatch[2];
-    }
-    else if(line.empty()) {
-        // failed by empty str, empty line
+    // example
+    // Connection: keep-alive
+    if(line.empty()) {
+        // empty line in header
         if(m_method == "POST")
             m_state = RequestState::CONTENT;
         else if(m_method == "GET")
@@ -151,10 +145,23 @@ void HttpRequest::parseHeader(const std::string &line) {
             m_state = RequestState::PARSE_ERROR;  // not supported method
     }
     else {
-        // failed
-        m_state = RequestState::PARSE_ERROR;
+        std::istringstream iss(line);
+        std::string key, value;
+        if((iss >> key >> value)) {
+            if(key.back() == ':') {
+                // good
+                key.pop_back();
+            }
+            else {
+                // bad
+                m_state = RequestState::PARSE_ERROR;
+            }
+        }
+        else {
+            // fail
+            m_state = RequestState::PARSE_ERROR;
+        }
     }
-
 }
 
 void HttpRequest::parseBody(const std::string &line) {
